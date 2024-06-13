@@ -142,12 +142,10 @@ public class TradeCommand implements CommandExecutor, Listener {
         Inventory tradeInv = e.getInventory();
 
         if (e.isShiftClick() || !isOfCorrespondingSlot(e.getRawSlot() , p , tradeInv) ){
-            p.sendMessage("Invalid Click");
             e.setCancelled(true);
         }
 
         if (e.getRawSlot() >= 45 && !e.isShiftClick()) {
-            p.sendMessage("Inventory Click");
             e.setCancelled(false);
             return;
         }
@@ -170,7 +168,6 @@ public class TradeCommand implements CommandExecutor, Listener {
 
             if (isPlayer1) {
                 if (e.getRawSlot() == 39) {
-                    p.sendMessage("You are player 1");
                     tradeInv.setItem(39, createGuiItem(Material.GREEN_WOOL, "Trade Ready"));
                     e.setCancelled(true);
                 } else if (!isPlayer1Slot(e.getRawSlot())) {
@@ -178,7 +175,6 @@ public class TradeCommand implements CommandExecutor, Listener {
                 }
             } else {
                 if (e.getRawSlot() == 41) {
-                    p.sendMessage("You are player 2");
                     tradeInv.setItem(41, createGuiItem(Material.GREEN_WOOL, "Trade Ready"));
                     e.setCancelled(true);
                 } else if (!isPlayer2Slot(e.getRawSlot())) {
@@ -296,10 +292,8 @@ public class TradeCommand implements CommandExecutor, Listener {
     }
 
     private void processItems(Player player, Player tradePartner, Inventory inv, List<Integer> playerSlots, List<Integer> partnerSlots) {
-        System.out.println(player.equals(inventoryToPlayer1.get(inv)) ? "Player1" : "Player2");
 
         playerSlots.forEach(slot -> {
-            System.out.println("Slot: " + slot);
             ItemStack item = inv.getItem(slot);
             if (item != null && tradePartner != null) {
                 tradePartner.getInventory().addItem(item);
@@ -307,7 +301,6 @@ public class TradeCommand implements CommandExecutor, Listener {
         });
 
         partnerSlots.forEach(slot -> {
-            System.out.println("Slot: " + slot);
             ItemStack item = inv.getItem(slot);
             if (item != null) {
                 player.getInventory().addItem(item);
