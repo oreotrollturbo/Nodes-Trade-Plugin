@@ -10,10 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -147,6 +144,14 @@ public class TradeCommand implements CommandExecutor, Listener {
             e.setCancelled(true);
         }
 
+        if (e.getAction() == InventoryAction.COLLECT_TO_CURSOR) {
+            e.getWhoClicked().sendMessage("Detected");
+
+            e.setResult(Event.Result.DENY);
+            e.setCancelled(true);
+            return;
+        }
+
         if (e.getRawSlot() >= 45 && !e.isShiftClick()) {
             e.setCancelled(false);
             return;
@@ -229,18 +234,6 @@ public class TradeCommand implements CommandExecutor, Listener {
 
         if ((Objects.requireNonNull(tradeInv.getItem(39)).getType().equals(Material.GREEN_WOOL)
                 || Objects.requireNonNull(tradeInv.getItem(41)).getType().equals(Material.GREEN_WOOL))) {
-            e.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    private void stopDoubleClick(InventoryClickEvent e){ //Stop double clicking
-        if (!e.getView().getTitle().equals(invName)) return;
-
-        if (e.getAction().equals( InventoryAction.COLLECT_TO_CURSOR)) {
-            e.getWhoClicked().sendMessage("Detected");
-
-            e.setResult(Event.Result.DENY);
             e.setCancelled(true);
         }
     }
