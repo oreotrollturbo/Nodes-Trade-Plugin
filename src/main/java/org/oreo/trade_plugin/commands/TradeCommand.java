@@ -3,9 +3,10 @@ package org.oreo.trade_plugin.commands;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -18,7 +19,7 @@ import org.oreo.trade_plugin.TradePlugin;
 
 import java.util.*;
 
-public class TradeCommand implements CommandExecutor, Listener {
+public class TradeCommand implements TabExecutor, Listener {
 
     private static final Map<Player, Player> tradeRequests = new HashMap<>();
     private static final Map<Player, Inventory> activeTrades = new HashMap<>();
@@ -35,10 +36,11 @@ public class TradeCommand implements CommandExecutor, Listener {
 
     private final String invName = "Trade Offer";
 
+    private final TradePlugin tradePlugin;
+
     public TradeCommand(TradePlugin plugin) {
+        this.tradePlugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
-
-
     }
 
     @Override
@@ -62,7 +64,7 @@ public class TradeCommand implements CommandExecutor, Listener {
             }
 
             if (senderPlayer == null) {
-                player.sendMessage(ChatColor.RED + "You don't have any pending trade requests.");
+                player.sendMessage(ChatColor.RED + "You don't have any pending trade requests");
                 return true;
             }
 
@@ -90,14 +92,58 @@ public class TradeCommand implements CommandExecutor, Listener {
                 return true;
             }
 
+            if (receiver.equals(player)) {
+                player.sendMessage(ChatColor.RED + "You cant trade with yourself");
+                return true;
+            }
+
+            if (tradeRequests.containsKey(player)) {
+                player.sendMessage(ChatColor.RED + "You already have an active trade request");
+                return true;
+            }
+
             player.sendMessage(ChatColor.GREEN + "Sending trade request to " + receiver.getName());
             receiver.sendMessage(ChatColor.GOLD + player.getName() + " is sending you a trade request. Use /trade accept to accept.");
 
             synchronized (tradeRequests) {
                 tradeRequests.put(receiver, player);
             }
+
+            receiver.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME,2,1);
+
+            Bukkit.getServer().getScheduler()
+                    .scheduleAsyncDelayedTask(tradePlugin, new Runnable() {
+                        public void run() {
+
+                            if (tradeRequests.containsKey(receiver)){
+                                player.sendMessage(ChatColor.RED + "Request expired");
+                                synchronized (tradeRequests) {
+                                    tradeRequests.remove(receiver);
+                                }
+                            }
+
+                        }
+                    }, 1200);
+
             return true;
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1){
+            List<String> playerNames = new ArrayList<>();
+            Player[] players = new Player[Bukkit.getServer().getOnlinePlayers().size()];
+            Bukkit.getServer().getOnlinePlayers().toArray(players);
+            for (int i = 0; i < players.length; i++){
+                playerNames.add(players[i].getName());
+            }
+            playerNames.add("accept");
+
+            return playerNames;
+        }
+
+        return null;
     }
 
     private Inventory createTradeInventory(Player player1, Player player2) {
@@ -287,10 +333,24 @@ public class TradeCommand implements CommandExecutor, Listener {
             }
 
             if (accepted){
+
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING,1,5);
+                assert tradePartner != null;
+                tradePartner.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING,1,5);
                 if (isPlayer1) {
                     processItems(player, tradePartner, inv, player1Slots, player2Slots);
                 } else {
                     processItems(player, tradePartner, inv, player2Slots, player1Slots);
+                }
+            }else if (!accepted){
+
+                player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_DESTROY,1,3);
+                assert tradePartner != null;
+                tradePartner.playSound(tradePartner.getLocation(), Sound.BLOCK_ANVIL_HIT,1,3);
+                if (isPlayer1) {
+                    processItems(tradePartner, player, inv, player1Slots, player2Slots);
+                } else {
+                    processItems(tradePartner, player, inv, player2Slots, player1Slots);
                 }
             }
 
