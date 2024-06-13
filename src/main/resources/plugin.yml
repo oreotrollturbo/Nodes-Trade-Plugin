@@ -1,6 +1,14 @@
-name: Trade Plugin
+name: TradePlugin
 version: '${project.version}'
 main: org.oreo.trade_plugin.TradePlugin
 api-version: '1.20'
 authors: [oreotrollturbo]
 description: A simple trade plugin for crusalis
+
+
+commands:
+
+    trade: #Simple trade command
+      description: Trade with any player online
+      usage: /<command>
+      aliases: [ trade ]

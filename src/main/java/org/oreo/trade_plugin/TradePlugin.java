@@ -1,6 +1,7 @@
 package org.oreo.trade_plugin;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.oreo.trade_plugin.commands.TradeCommand;
 
 public final class TradePlugin extends JavaPlugin {
 
@@ -8,10 +9,6 @@ public final class TradePlugin extends JavaPlugin {
     public void onEnable() {
         // Plugin startup logic
 
-    }
-
-    @Override
-    public void onDisable() {
-        // Plugin shutdown logic
+        getCommand("trade").setExecutor(new TradeCommand(this)); // Register a command
     }
 }
