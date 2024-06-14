@@ -1,9 +1,7 @@
 package org.oreo.trade_plugin.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -48,6 +46,18 @@ public class TradeCommand implements TabExecutor, Listener {
      * The name of the inventory
      */
     private final String invName = "Trade Offer";
+
+    /**
+     * Simple and accessible way to set the block that the command will check for as a "Port block"
+     */
+    private final Material portBlock = Material.BEACON;
+
+
+    /**
+     * An easy accessible way to change the time until a trade request "Expires" (gets deleted from the activeTrades list)
+     * Keep in mind this is in minecraft ticks (20 ticks is 1 second)
+     */
+    private final int expirationDelay = 1200;
 
     private final TradePlugin tradePlugin; //Plugin instance
 
@@ -129,7 +139,7 @@ public class TradeCommand implements TabExecutor, Listener {
             receiver.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME,2,1);
 
             Bukkit.getServer().getScheduler()
-                    .scheduleAsyncDelayedTask(tradePlugin, new Runnable() {
+                    .scheduleSyncDelayedTask(tradePlugin, new Runnable() {
                         public void run() {
 
                             if (tradeRequests.containsKey(receiver)){
@@ -140,7 +150,7 @@ public class TradeCommand implements TabExecutor, Listener {
                             }
 
                         }
-                    }, 1200);
+                    }, expirationDelay);
 
             return true;
         }
@@ -235,6 +245,7 @@ public class TradeCommand implements TabExecutor, Listener {
     /**
      * Checks if it's the trade inventory open , stops shift clicking , stops the COLLECT_TO_CURSOR (double click to gather)
      * Lets you click on your inventory as long as neither player is "trade ready"
+     * NOTE : Unlike many other trade plugins this one uses the same inventory instance which should make it theoretically undupe-able
      */
     @EventHandler
     public void onInventoryClick(final InventoryClickEvent e) {
@@ -378,7 +389,7 @@ public class TradeCommand implements TabExecutor, Listener {
      * @return boolean
      * Checks if the slot corresponds to the player that clicked
      * the method does this by checking the player1 list and seeing if the player is in it
-     * if he is not it assumes hes player 2
+     * if he is not it assumes he's player 2
      */
     private boolean isOfCorrespondingSlot(int rawSlot, Player player , Inventory tradeInv){
 
@@ -528,5 +539,40 @@ public class TradeCommand implements TabExecutor, Listener {
                 || Objects.requireNonNull(tradeInv.getItem(41)).getType().equals(Material.GREEN_WOOL))) {
             e.setCancelled(true);
         }
+    }
+
+    /**
+     * @param location The location from where you want to check for a block (the centre of the radius)
+     * @param radius The size of the radius
+     * @return returns a list of all blocks
+     * Iterates through the list of nearby blocks and gives you back a list of all of them.
+     * It's intended to use getNearbyBlocks().contains, so you can check if a player or entity is nearby a specific block type
+     */
+    private static List<Block> getNearbyBlocks(Location location, int radius) {
+        List<Block> blocks = new ArrayList<Block>();
+        for(int x = location.getBlockX() - radius; x <= location.getBlockX() + radius; x++) {
+            for(int y = location.getBlockY() - radius; y <= location.getBlockY() + radius; y++) {
+                for(int z = location.getBlockZ() - radius; z <= location.getBlockZ() + radius; z++) {
+                    blocks.add(Objects.requireNonNull(location.getWorld()).getBlockAt(x, y, z));
+                }
+            }
+        }
+        return blocks;
+    }
+
+    /**
+     * @param blocks the list of blocks
+     * @return whether there was the specified block in the list
+     * This boolean is used paired with getNearbyBlocks method to check if there is a portBlock to check for any specific block
+     */
+    private boolean isNearPortBlock(List<Block> blocks){
+
+        for (Block block : blocks){
+            if (block.getType().equals(portBlock)){
+                return true;
+            }
+        }
+
+        return false;
     }
 }
