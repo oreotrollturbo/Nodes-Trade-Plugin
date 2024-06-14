@@ -41,9 +41,8 @@ public class TradeCommand implements TabExecutor, Listener {
     private final List<Integer> player2Slots = new ArrayList<>(Arrays.asList(5, 6, 7, 8, 14, 15, 16, 17, 23, 24,
             25, 26, 32, 33, 34, 35, 42, 43, 44));
 
-
     /**
-     * The name of the inventory
+     * The name of the trade inventory
      */
     private final String invName = "Trade Offer";
 
@@ -51,6 +50,12 @@ public class TradeCommand implements TabExecutor, Listener {
      * Simple and accessible way to set the block that the command will check for as a "Port block"
      */
     private final Material portBlock = Material.BEACON;
+
+    /**
+     * An easy and accessible way to change the radius for "port block" checking
+     * NOTE : Making this too big WILL cause performance issues as the method checks all the blocks within that radius
+     */
+    private static final int radius = 6;
 
 
     /**
@@ -85,6 +90,7 @@ public class TradeCommand implements TabExecutor, Listener {
         }
 
         if (args[0].equalsIgnoreCase("accept")) {
+
             Player senderPlayer;
             synchronized (tradeRequests) {
                 senderPlayer = tradeRequests.get(player);
@@ -92,6 +98,11 @@ public class TradeCommand implements TabExecutor, Listener {
 
             if (senderPlayer == null) {
                 player.sendMessage(ChatColor.RED + "You don't have any pending trade requests");
+                return true;
+            }
+
+            if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
+                player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
                 return true;
             }
 
@@ -113,6 +124,11 @@ public class TradeCommand implements TabExecutor, Listener {
             return true;
         } else {
             Player receiver = Bukkit.getPlayerExact(args[0]);
+
+            if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
+                player.sendMessage(ChatColor.RED + "You need to be near a port to send a trade requests");
+                return true;
+            }
 
             if (receiver == null) {
                 player.sendMessage(ChatColor.RED + "Invalid username.");
@@ -543,20 +559,21 @@ public class TradeCommand implements TabExecutor, Listener {
 
     /**
      * @param location The location from where you want to check for a block (the centre of the radius)
-     * @param radius The size of the radius
      * @return returns a list of all blocks
      * Iterates through the list of nearby blocks and gives you back a list of all of them.
      * It's intended to use getNearbyBlocks().contains, so you can check if a player or entity is nearby a specific block type
+     * The radius is a private final int defined within the class
      */
-    private static List<Block> getNearbyBlocks(Location location, int radius) {
+    private static List<Block> getNearbyBlocks(Location location) {
         List<Block> blocks = new ArrayList<Block>();
-        for(int x = location.getBlockX() - radius; x <= location.getBlockX() + radius; x++) {
+        for(int x = location.getBlockX() - radius ; x <= location.getBlockX() + radius; x++) {
             for(int y = location.getBlockY() - radius; y <= location.getBlockY() + radius; y++) {
                 for(int z = location.getBlockZ() - radius; z <= location.getBlockZ() + radius; z++) {
                     blocks.add(Objects.requireNonNull(location.getWorld()).getBlockAt(x, y, z));
                 }
             }
         }
+        System.out.println("I ran : )");
         return blocks;
     }
 
