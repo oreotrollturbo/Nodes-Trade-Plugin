@@ -14,6 +14,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.oreo.trade_plugin.TradePlugin;
+import phonon.ports.Port;
+import phonon.ports.Ports;
 
 import java.util.*;
 
@@ -33,13 +35,13 @@ public class TradeCommand implements TabExecutor, Listener {
      * All the slots that correspond to player 1
      */
     private final List<Integer> player1Slots = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 9, 10, 11, 12, 18, 19,
-            20, 21, 27, 28, 29, 30, 36, 37, 38));
+            20, 21, 27, 28, 29, 30));
 
     /**
      * All the slots that correspond to player 1
      */
     private final List<Integer> player2Slots = new ArrayList<>(Arrays.asList(5, 6, 7, 8, 14, 15, 16, 17, 23, 24,
-            25, 26, 32, 33, 34, 35, 42, 43, 44));
+            25, 26, 32, 33, 34, 35));
 
     /**
      * The name of the trade inventory
@@ -64,6 +66,11 @@ public class TradeCommand implements TabExecutor, Listener {
      */
     private final int expirationDelay = 1200;
 
+    /**
+     * An easy way to change the fee amount of the trades (gold ingots)
+     */
+    private final int feeAmmount = 5;
+
     private final TradePlugin tradePlugin; //Plugin instance
 
     /**
@@ -84,10 +91,16 @@ public class TradeCommand implements TabExecutor, Listener {
 
         Player player = (Player) sender;
 
+        if (!player.getInventory().contains(Material.GOLD_INGOT,5)){ //I could make it detect if theres multiple item stacks that add up to 5 but I don't see why
+            player.sendMessage(ChatColor.RED + "You don't have enough to pay the trade fee (5 gold ingots)");
+            return true;
+        }
+
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "You must specify a player to trade with.");
             return true;
         }
+
 
         if (args[0].equalsIgnoreCase("accept")) {
 
@@ -171,6 +184,44 @@ public class TradeCommand implements TabExecutor, Listener {
             return true;
         }
     }
+
+    /**
+     * @param player The player to remove the gold from
+     * @param amountToRemove how many items it will remove
+     * This method loops through a players inventory and removes 5 gold
+     */
+    public void applyFee(Player player, int amountToRemove) {
+        ItemStack[] inventoryContents = player.getInventory().getContents();
+        int amountRemoved = 0;
+
+        for (int i = 0; i < inventoryContents.length; i++) {
+            ItemStack item = inventoryContents[i];
+            if (item != null && item.getType() == Material.GOLD_INGOT) {
+                int itemAmount = item.getAmount();
+
+                if (itemAmount > amountToRemove - amountRemoved) {
+                    // Reduce the item amount and update the inventory
+                    item.setAmount(itemAmount - (amountToRemove - amountRemoved));
+                    amountRemoved = amountToRemove;
+                } else {
+                    // Remove the item entirely
+                    player.getInventory().clear(i);
+                    amountRemoved += itemAmount;
+                }
+
+                // If we've removed enough, exit the loop
+                if (amountRemoved >= amountToRemove) {
+                    break;
+                }
+            }
+        }
+
+        // Notify the player (optional)
+        if (amountRemoved > 0) {
+            player.sendMessage(ChatColor.DARK_GREEN + "the fee of " + amountRemoved + " gold has been paid");
+        }
+    }
+
 
     /**
      * Adds "accept" to the autoComplete menu
@@ -357,7 +408,7 @@ public class TradeCommand implements TabExecutor, Listener {
 
     /**
      * Checks if either of the players are "ready" by checking if either of the wools are green
-     * if they are then it cancels any click event so you cant drag in/out stuff out of the trade inventory
+     * if they are then it cancels any click event so you cant drag stuff in/out of the trade inventory
      */
     @EventHandler
     private void oneReady(InventoryClickEvent e){
@@ -422,8 +473,9 @@ public class TradeCommand implements TabExecutor, Listener {
      * @param accepted Check if the trade was accepted or denied
      * @param inv Get the inventory of the trade
      * This method handles everything when a trade is completed
-     * it closes the inventory for both players sends the appropriate message gives the items
-     * and removes the trade from the list
+     * it closes the inventory for both players sends the appropriate message gives the items ,
+     * removes the trade from the list and applies the trading fee using the applyFee method if the players have enough gold
+     *           otherwise it as if the trade was rejected
      */
     private void handleTradeCompletion(Player player, boolean accepted, Inventory inv) {
         Inventory tradeInv;
@@ -436,6 +488,18 @@ public class TradeCommand implements TabExecutor, Listener {
             Player tradePartner = isPlayer1
                     ? inventoryToPlayer2.get(tradeInv)
                     : inventoryToPlayer1.get(tradeInv);
+
+            if (accepted && !hasFee(player)){
+                accepted = false;
+                player.sendMessage(ChatColor.RED + "You cannot afford the trading fee");
+                tradePartner.sendMessage(ChatColor.RED + "Your trading partner cant afford the trading fee");
+            }
+            if (accepted && !hasFee(tradePartner)){
+                accepted = false;
+                tradePartner.sendMessage(ChatColor.RED + "You cannot afford the trading fee");
+                player.sendMessage(ChatColor.RED + "Your trading partner cant afford the trading fee");
+            }
+
 
             activeTrades.remove(player);
             activeTrades.remove(tradePartner);
@@ -454,7 +518,10 @@ public class TradeCommand implements TabExecutor, Listener {
             if (accepted){
 
                 player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING,1,5);
-                assert tradePartner != null;
+
+                applyFee(player,feeAmmount);
+                applyFee(tradePartner,feeAmmount);
+
                 tradePartner.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING,1,5);
                 if (isPlayer1) {
                     processItems(player, tradePartner, inv, player1Slots, player2Slots);
@@ -573,7 +640,6 @@ public class TradeCommand implements TabExecutor, Listener {
                 }
             }
         }
-        System.out.println("I ran : )");
         return blocks;
     }
 
@@ -591,5 +657,9 @@ public class TradeCommand implements TabExecutor, Listener {
         }
 
         return false;
+    }
+
+    private boolean hasFee(Player player){
+        return player.getInventory().contains(Material.GOLD_INGOT,feeAmmount);
     }
 }
