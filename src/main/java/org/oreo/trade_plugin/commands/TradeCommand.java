@@ -14,7 +14,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.oreo.trade_plugin.TradePlugin;
-import phonon.ports.Port;
 import phonon.ports.Ports;
 
 import java.util.*;
@@ -96,6 +95,11 @@ public class TradeCommand implements TabExecutor, Listener {
             return true;
         }
 
+        if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
+            player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
+            return true;
+        }
+
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "You must specify a player to trade with.");
             return true;
@@ -111,11 +115,6 @@ public class TradeCommand implements TabExecutor, Listener {
 
             if (senderPlayer == null) {
                 player.sendMessage(ChatColor.RED + "You don't have any pending trade requests");
-                return true;
-            }
-
-            if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
-                player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
                 return true;
             }
 
@@ -137,11 +136,6 @@ public class TradeCommand implements TabExecutor, Listener {
             return true;
         } else {
             Player receiver = Bukkit.getPlayerExact(args[0]);
-
-            if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
-                player.sendMessage(ChatColor.RED + "You need to be near a port to send a trade requests");
-                return true;
-            }
 
             if (receiver == null) {
                 player.sendMessage(ChatColor.RED + "Invalid username.");
