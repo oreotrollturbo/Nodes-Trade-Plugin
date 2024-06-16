@@ -14,7 +14,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.oreo.trade_plugin.TradePlugin;
+import phonon.ports.ChunkCoord;
+import phonon.ports.Port;
 import phonon.ports.Ports;
+
 
 import java.util.*;
 
@@ -22,6 +25,8 @@ public class TradeCommand implements TabExecutor, Listener {
 
     private static final Map<Player, Player> tradeRequests = new HashMap<>(); // A list for all trade requests that are active
     private static final Map<Player, Inventory> activeTrades = new HashMap<>(); // A list for all trade requests happening
+
+
 
     /**
      * These are used to which player trading corresponds to what inventory
@@ -89,16 +94,39 @@ public class TradeCommand implements TabExecutor, Listener {
         }
 
         Player player = (Player) sender;
+        World world = player.getWorld();
 
-        if (!player.getInventory().contains(Material.GOLD_INGOT,5)){ //I could make it detect if theres multiple item stacks that add up to 5 but I don't see why
+
+        HashMap<String, Port> ports = Ports.INSTANCE.getPorts();
+        Chunk playerChunk = world.getChunkAt(player.getLocation().getChunk().getX(),player.getLocation().getChunk().getZ());
+        boolean playerIsAtPort = false;
+
+        for (Port port : ports.values()) {
+            Chunk portChunk = world.getChunkAt(port.getChunkX(),port.getChunkZ());
+
+            System.out.println(portChunk);
+            System.out.println(playerChunk);
+
+            if (portChunk.equals(playerChunk)){
+                playerIsAtPort = true;
+                break;
+            }
+        }
+
+        if (!playerIsAtPort){
+            player.sendMessage(ChatColor.RED + "You can only send/accept trade requests when at a port");
+            return true;
+        }
+
+        if (!player.getInventory().contains(Material.GOLD_INGOT,5)){ //I could make it detect if there's multiple item stacks that add up to 5, but I don't see why
             player.sendMessage(ChatColor.RED + "You don't have enough to pay the trade fee (5 gold ingots)");
             return true;
         }
 
-        if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
-            player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
-            return true;
-        }
+//        if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
+//            player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
+//            return true;
+//        }
 
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "You must specify a player to trade with.");
@@ -183,6 +211,7 @@ public class TradeCommand implements TabExecutor, Listener {
      * @param player The player to remove the gold from
      * @param amountToRemove how many items it will remove
      * This method loops through a players inventory and removes 5 gold
+     * This is Nyxe's fault
      */
     public void applyFee(Player player, int amountToRemove) {
         ItemStack[] inventoryContents = player.getInventory().getContents();
@@ -242,7 +271,6 @@ public class TradeCommand implements TabExecutor, Listener {
      * @param player2 set the second player of the trade
      * @param rows Add how many rows you want the inventory to be
      * @return inventory
-     *
      * Creates the trade inventory with the set amount of rows
      */
     private Inventory createTradeInventory(Player player1, Player player2, int rows) {
@@ -418,7 +446,7 @@ public class TradeCommand implements TabExecutor, Listener {
 
     /**
      * @param rawSlot get the slot clicked
-     * @return
+     * @return Every slot of gui items
      * Checks if the items are of the trade gui
      */
     private boolean isGuiItem(int rawSlot) {
@@ -653,6 +681,10 @@ public class TradeCommand implements TabExecutor, Listener {
         return false;
     }
 
+    /**
+     * @param player checks if the player has enough gold in their inventory
+     * This method checks if a person has a stack of at least 5 gold in their inventory
+     */
     private boolean hasFee(Player player){
         return player.getInventory().contains(Material.GOLD_INGOT,feeAmmount);
     }

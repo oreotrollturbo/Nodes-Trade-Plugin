@@ -8,6 +8,7 @@ public final class TradePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
+        getLogger().info("Trade plugin is on");
 
         getCommand("trade").setExecutor(new TradeCommand(this)); // Register a command
     }
