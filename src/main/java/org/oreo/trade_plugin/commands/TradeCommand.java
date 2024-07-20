@@ -14,7 +14,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.oreo.trade_plugin.TradePlugin;
-import phonon.ports.ChunkCoord;
 import phonon.ports.Port;
 import phonon.ports.Ports;
 
@@ -24,6 +23,7 @@ import java.util.*;
 public class TradeCommand implements TabExecutor, Listener {
 
     private static final Map<Player, Player> tradeRequests = new HashMap<>(); // A list for all trade requests that are active
+
     private static final Map<Player, Inventory> activeTrades = new HashMap<>(); // A list for all trade requests happening
 
 
@@ -123,10 +123,6 @@ public class TradeCommand implements TabExecutor, Listener {
             return true;
         }
 
-//        if (!isNearPortBlock(getNearbyBlocks(player.getLocation()))){
-//            player.sendMessage(ChatColor.RED + "You need to be near a port to accept a trade request");
-//            return true;
-//        }
 
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "You must specify a player to trade with.");
